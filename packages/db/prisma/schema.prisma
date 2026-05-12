@@ -1,0 +1,164 @@
+// Streaming verification web app — Prisma schema
+// Datasource: Supabase Postgres
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// Auth / User
+// ============================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  nickname      String    @unique
+  avatarUrl     String?
+  provider      String // "kakao" | "google"
+  providerId    String
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  proofs        StreamingProof[]
+  reviews       Review[]
+
+  @@unique([provider, providerId])
+  @@index([nickname])
+}
+
+// ============================================
+// Songs (admin-managed)
+// ============================================
+
+model Song {
+  id            String    @id @default(cuid())
+  title         String
+  artist        String
+  albumCoverUrl String?
+  releaseDate   DateTime?
+  isActive      Boolean   @default(true) // listed on rankings
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // OCR matching aliases (e.g. ["DAY1", "Day 1", "데이원"])
+  aliases       String[]
+
+  proofs        StreamingProof[]
+
+  @@index([isActive])
+  @@index([title])
+}
+
+// ============================================
+// Streaming proof submissions
+// ============================================
+
+enum Platform {
+  MELON
+  GENIE
+  FLO
+  BUGS
+  YOUTUBE_MUSIC
+  SPOTIFY
+  APPLE_MUSIC
+  VIBE
+  OTHER
+}
+
+enum ProofStatus {
+  PENDING_OCR    // uploaded, OCR queued
+  AUTO_APPROVED  // OCR succeeded with high confidence
+  PENDING_REVIEW // OCR low confidence — admin needed
+  APPROVED       // admin approved
+  REJECTED       // admin rejected
+}
+
+model StreamingProof {
+  id              String      @id @default(cuid())
+  userId          String
+  songId          String?     // null until matched
+
+  imageUrl        String      // Supabase Storage path
+  imageHash       String      @unique // sha256 — prevent duplicate uploads
+
+  platform        Platform?
+  playCount       Int         @default(0) // verified play count from OCR
+  ocrText         String?     @db.Text
+  ocrConfidence   Float?      // 0.0 - 1.0
+  ocrRawJson      Json?
+
+  status          ProofStatus @default(PENDING_OCR)
+  rejectionReason String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  reviewedAt      DateTime?
+
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song            Song?       @relation(fields: [songId], references: [id], onDelete: SetNull)
+  reviews         Review[]
+
+  @@index([userId])
+  @@index([songId])
+  @@index([status])
+  @@index([songId, status])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  proofId     String
+  reviewerId  String
+  approved    Boolean
+  note        String?
+  createdAt   DateTime @default(now())
+
+  proof       StreamingProof @relation(fields: [proofId], references: [id], onDelete: Cascade)
+  reviewer    User           @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([proofId])
+}
+
+// ============================================
+// Announcements (admin posts)
+// ============================================
+
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  body        String    @db.Text
+  pinned      Boolean   @default(false)
+  publishedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([publishedAt])
+}
+
+// ============================================
+// Streaming guides (admin posts)
+// ============================================
+
+model StreamingGuide {
+  id        String   @id @default(cuid())
+  platform  Platform
+  title     String
+  body      String   @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([platform, order])
+}
