@@ -10,16 +10,18 @@
   "scripts": {
     "build": "echo 'no build'",
     "typecheck": "tsc --noEmit",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:push": "dotenv -e ../../.env -- prisma db push",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:studio": "dotenv -e ../../.env -- prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.1"
+    "@prisma/client": "^6.0.1",
+    "@supabase/supabase-js": "^2.46.2"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "dotenv-cli": "^7.4.4",
     "prisma": "^6.0.1",
     "typescript": "^5.7.2"
   }

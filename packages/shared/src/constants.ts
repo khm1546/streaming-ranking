@@ -10,6 +10,10 @@ export const PLATFORMS = [
   'OTHER',
 ] as const;
 
+/** Currently supported platforms for user-facing UI (upload + guides). */
+export const SUPPORTED_PLATFORMS = ['MELON'] as const;
+export type SupportedPlatform = (typeof SUPPORTED_PLATFORMS)[number];
+
 export const PLATFORM_LABELS: Record<(typeof PLATFORMS)[number], string> = {
   MELON: '멜론',
   GENIE: '지니',

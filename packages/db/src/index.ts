@@ -15,3 +15,11 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export * from '@prisma/client';
+export { getOrCreateDevUser, requireUser, requireAdmin } from './auth-shim';
+export { matchSongFromText, type MatchResult } from './song-matcher';
+export {
+  getStorageClient,
+  ensureBucket,
+  uploadProofImage,
+  getPublicUrl,
+} from './storage';
