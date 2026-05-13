@@ -5,15 +5,28 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@streaming/ui';
 import { SUPPORTED_PLATFORMS, PLATFORM_LABELS } from '@streaming/shared';
-import { RichEditor } from '../../../components/rich-editor';
-import { createGuide } from '../../../lib/actions/guide';
+import type { Platform } from '@streaming/db';
+import { RichEditor } from '../../../../components/rich-editor';
+import { updateGuide } from '../../../../lib/actions/guide';
 
-export default function NewGuidePage() {
+export function EditGuideForm({
+  id,
+  defaultPlatform,
+  defaultTitle,
+  defaultBody,
+  defaultOrder,
+}: {
+  id: string;
+  defaultPlatform: Platform;
+  defaultTitle: string;
+  defaultBody: string;
+  defaultOrder: number;
+}) {
   const router = useRouter();
-  const [platform, setPlatform] = useState<(typeof SUPPORTED_PLATFORMS)[number]>('MELON');
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [order, setOrder] = useState(0);
+  const [platform, setPlatform] = useState<Platform>(defaultPlatform);
+  const [title, setTitle] = useState(defaultTitle);
+  const [body, setBody] = useState(defaultBody);
+  const [order, setOrder] = useState(defaultOrder);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -26,7 +39,7 @@ export default function NewGuidePage() {
     }
     start(async () => {
       try {
-        await createGuide({ platform, title, body, order });
+        await updateGuide(id, { platform, title, body, order });
         router.push('/guides');
       } catch (e) {
         setError(e instanceof Error ? e.message : '저장에 실패했습니다.');
@@ -37,14 +50,14 @@ export default function NewGuidePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">새 스밍 가이드</h1>
+        <h1 className="text-2xl font-bold">가이드 수정</h1>
         <Link href="/guides" className="text-sm text-text-muted hover:text-brand-600">
           ← 목록
         </Link>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>가이드 작성</CardTitle>
+          <CardTitle>{defaultTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -52,9 +65,7 @@ export default function NewGuidePage() {
               <label className="mb-1 block text-sm font-medium">플랫폼</label>
               <select
                 value={platform}
-                onChange={(e) =>
-                  setPlatform(e.target.value as (typeof SUPPORTED_PLATFORMS)[number])
-                }
+                onChange={(e) => setPlatform(e.target.value as Platform)}
                 className="h-10 w-full rounded-md border border-surface-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {SUPPORTED_PLATFORMS.map((p) => (
@@ -63,19 +74,14 @@ export default function NewGuidePage() {
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-text-muted">현재 지원: 멜론</p>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">제목</label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="예) 멜론 스밍 인증 가이드"
-              />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">본문</label>
-              <RichEditor value={body} onChange={setBody} placeholder="가이드 내용을 작성하세요..." />
+              <RichEditor value={body} onChange={setBody} />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">정렬 순서</label>
@@ -85,7 +91,6 @@ export default function NewGuidePage() {
                 onChange={(e) => setOrder(Number(e.target.value))}
                 className="w-32"
               />
-              <p className="mt-1 text-xs text-text-muted">낮은 숫자가 먼저 표시됩니다.</p>
             </div>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <div className="flex gap-2">
